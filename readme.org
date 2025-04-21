@@ -1,0 +1,50 @@
+#+title: hotsky.el
+
+*hotsky.el* provides an Orgmode buffer with a sorted list of all links in your Bluesky feed of the last X (standard is 250) posts (including quotes, reposts, replies etc). 
+
+** The Idea
+
+In the wake of the demise of Twitter many scholars, journalists, politicians and public persons have landed on Bluesky as their social network choice. Even following only a few dozens of these highly productive (and online) people may lead to receiving several hundred posts on any given day - especially given the current state of the world. *hotsky.el* was intended as way to quit doom scrolling while still taking advantage of all great links posted there. It only extracts links - text and images are ignored.
+
+I use [[https://curl.se/][cURL]] to fetch the posts from Bluesky and also to get the names of the linked websites. Some websites try actively to prevent cURL to fetch the <title> info. For these cases hotsky is using the URL as the basis for the name shown.
+
+#+BEGIN_HTML
+<img src="/hotsky-example.png" alt="A sample hotsky buffer with a list of links.">
+#+END_HTML
+
+
+** Changelog
+
+*0.1*
+- Initial release
+
+** Installation 
+
+*** Use-package
+
+You do need to have =cURL= installed on your system. You also need a Bluesky account and an app password for your account. 
+
+This is my current setup:
+
+#+begin_src elisp
+(use-package hotsky
+  :straight (:host github :repo "rtrppl/hotsky")
+  :bind
+  (:map global-map
+	("C-c d h" . cleandesk-open-inbox)
+  :config
+  (setq bluesky-handle "handle.bsky.social")
+  (setq bluesky-app-password "password"))
+#+end_src
+
+** Usage
+
+*** hotsky
+
+When visiting the *elfeed-search* buffer invoke "C" (see above) or M-x hotsky and enter a search term. As ripgrep is using /regexp/ and examines HTML files, you may want to add "\w" after words, for example "price\w" for "price".
+
+Alternative you could also use "-w Taiwan|China|Ukraine" to search for either Taiwan, China or Ukraine as words.
+
+** FAQ
+
+*hotsky* is a working title that should denote the link to Bluesky and hotness (as in currentness).   
