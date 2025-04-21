@@ -1,9 +1,37 @@
+;;; hotsky.el --- Fetch current links from Bluesky timeline -*- lexical-binding: t; -*-
+
+;; Maintainer: René Trappel <rtrappel@gmail.com>
+;; URL: https://github.com/rtrppl/hotsky
+;; Version: 0.1
+;; Package-Requires: ((emacs "29.1"))
+
+;; This file is not part of GNU Emacs.
+
+;; This file is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3, or (at your option)
+;; any later version.
+
+;; This file is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+;; GNU General Public License for more details.
+
+;; For a full copy of the GNU General Public License
+;; see <https://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; hotsky.el provides an Orgmode buffer with a sorted list of links 
+;; from posts in your Bluesky feed.
+
+;;; Code:
+
 (require 'json)
-(require 'shr)
 (require 'xml)
 
-(defvar bluesky-handle "handle.bsky.social")
-(defvar bluesky-app-password "bluesky-password")
+(defvar hotsky-bluesky-handle "handle.bsky.social")
+(defvar hotsky-bluesky-app-password "bluesky-password")
 (defvar hotsky-accessJwt) ;;access token for Bluesky
 (defvar hotsky-max-posts 250)
 (defvar hotsky-max-length-entry nil)
@@ -14,13 +42,13 @@
   (setq bluesky-callback-json (shell-command-to-string 
 			  (concat "curl -sS -X POST \\\n"
 				  "-H \"Content-Type: application/json\" \\\n"
-				  "-d '{\"identifier\":\"" bluesky-handle "\",\"password\":\"" bluesky-app-password "\"}' \\\n"
+				  "-d '{\"identifier\":\"" hotsky-bluesky-handle "\",\"password\":\"" hotsky-bluesky-app-password "\"}' \\\n"
 				  "\"https://bsky.social/xrpc/com.atproto.server.createSession\"")))
   (setq hotsky-accessJwt (json-parse-string bluesky-callback-json :object-type 'alist))
   (setq hotsky-accessJwt (alist-get 'accessJwt hotsky-accessJwt))))
   
 (defun hotsky-get-timeline ()
-  "Load Bluesky timeline."
+  "Load Bluesky timeline into hash-table."
   (hotsky-bluesky-authenticate)
   (let* ((url "https://bsky.social/xrpc/app.bsky.feed.getTimeline")
          (auth (concat "Authorization: Bearer " hotsky-accessJwt))
@@ -29,8 +57,7 @@
     (json-parse-string raw :object-type 'hash-table)))
 
 (defun hotsky-get-timeline (&optional max-posts)
-  "Load up to MAX-POSTS entries from the Bluesky timeline.
-Defaults to 100 posts."
+  "Load up to MAX-POSTS entries from the Bluesky timeline."
   (hotsky-bluesky-authenticate)
   (let* ((max-posts (or max-posts 100))
          (url "https://bsky.social/xrpc/app.bsky.feed.getTimeline")
@@ -68,19 +95,6 @@ Defaults to 100 posts."
       (message "✅ Done: Fetched total %d posts" (length final))
       final)))
 
-(defun hotsky-get-timeline-cid-text-map ()
-  "Return a hashtable mapping post cid to text from the Bluesky timeline."
-  (let* ((timeline (hotsky-get-timeline hotsky-max-posts))  ;; You may specify desired number
-         (result (make-hash-table :test #'equal)))
-    (mapc (lambda (entry)
-            (let* ((post (gethash "post" entry))
-                   (cid (gethash "cid" post))
-                   (text (gethash "text" (gethash "record" post))))
-              (when (and cid text)
-                (puthash cid text result))))
-          timeline)
-    result))
-
 (defun hotsky--extract-urls (record)
   "Helper to extract URLs from a post record."
   (let ((facets (and (hash-table-p record) (gethash "facets" record)))
@@ -97,7 +111,8 @@ Defaults to 100 posts."
     urls))
 
 (defun hotsky-get-cid-url-map ()
-  "Return a hashtable mapping cid to a list of all URLs in each post, including reposts and quotes."
+  "Return a hashtable mapping cid to a list of all URLs in each post, including 
+reposts and quotes."
   (let* ((timeline (hotsky-get-timeline hotsky-max-posts)) ;; Optionally raise count
          (result (make-hash-table :test #'equal)))
     (mapc (lambda (entry)
@@ -178,6 +193,8 @@ Defaults to 100 posts."
     (when (or (string= "Just a moment..." title)
 	      (string= "Access to this page has been denied" title)
 	      (string= "reuters.com" title)
+	      (string= "Access Denied" title)
+	      (string= "Telegram" title)
 	      (string= "Bloomberg - Are you a robot?" title)
 	      (string= "Subscribe to read" title))
       (setq title nil))
@@ -204,11 +221,13 @@ Defaults to 100 posts."
     (sort url-list (lambda (a b) (> (cdr a) (cdr b))))))
 
 (defun hotsky ()
-  "Return a list of all URLs in my Bluesky feed, sorted by frequency of mentions."
+  "Return a list of all URLs in my Bluesky feed, sorted by frequency of 
+mentions."
   (interactive)
-  (let ((hotsky-buffer "*hotsky buffer*"))
+  (let ((hotsky-buffer "*hotsky buffer*")
+	(hotsky-og-max-length-entry hotsky-max-length-entry))
     (when (not hotsky-max-length-entry)
-      (setq hotsky-max-length-entry (- (window-body-width) 8)))
+      (setq hotsky-max-length-entry (- (window-body-width) 11)))
     (with-current-buffer (get-buffer-create hotsky-buffer)
       (erase-buffer)
       (switch-to-buffer hotsky-buffer)
@@ -220,17 +239,18 @@ Defaults to 100 posts."
              (url-name-map (hotsky-get-url-name-map all-urls)))
 	(message "Done.")
 	(dolist (item sorted-list)
-	  (let* ((name (gethash (car item) url-name-map))
-		 (frequency (concat (make-string (cdr item) ?▌)))
-		 (org-link (concat "[[" (car item) "][" name "]]"))
-		 (full-line (concat frequency " " org-link "\n")))
-            (insert full-line)))
-	(goto-char (point-min)))
-       (goto-char (point-min))  
-       (org-next-link)
-       (hotsky-buffer-mode))))
+	  (when (not (string= "https://www.youtube.com/watch" (car item)))
+	    (let* ((name (gethash (car item) url-name-map))
+		   (frequency (concat (make-string (cdr item) ?▌)))
+		   (org-link (concat "[[" (car item) "][" name "]]"))
+		   (full-line (concat frequency " " org-link "\n")))
+              (insert full-line))))
+	(goto-char (point-min))  
+	(org-next-link)
+	(hotsky-buffer-mode)
+	(when (not hotsky-og-max-length-entry)
+	  (setq hotsky-max-length-entry nil))))))
  
-
 (defun hotsky-org-goto-first-link ()
   "Move point to the first link in the current buffer."
   (interactive)

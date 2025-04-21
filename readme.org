@@ -1,6 +1,6 @@
 #+title: hotsky.el
 
-*hotsky.el* provides an Orgmode buffer with a sorted list of all links in your Bluesky feed of the last x posts (standard is 250; including quotes, reposts, replies). 
+*hotsky.el* provides an Orgmode buffer with a sorted list of links from posts in your Bluesky feed. 
 
 ** The Idea
 
@@ -31,10 +31,10 @@ This is my current setup:
   :straight (:host github :repo "rtrppl/hotsky")
   :bind
   (:map global-map
-	("C-c d h" . cleandesk-open-inbox)
+	("C-c d h" . hotsky)
   :config
-  (setq bluesky-handle "handle.bsky.social")
-  (setq bluesky-app-password "password"))
+  (setq hotsky-bluesky-handle "handle.bsky.social")
+  (setq hotsky-bluesky-app-password "password"))
 #+end_src
 
 ** Usage
