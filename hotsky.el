@@ -2,7 +2,7 @@
 
 ;; Maintainer: René Trappel <rtrappel@gmail.com>
 ;; URL: https://github.com/rtrppl/hotsky
-;; Version: 0.1
+;; Version: 0.1.1
 ;; Package-Requires: ((emacs "29.1"))
 
 ;; This file is not part of GNU Emacs.
@@ -34,7 +34,6 @@
 (defvar hotsky-bluesky-app-password "bluesky-password")
 (defvar hotsky-accessJwt) ;;access token for Bluesky
 (defvar hotsky-max-posts 250)
-(defvar hotsky-max-length-entry nil)
 
 (defun hotsky-bluesky-authenticate ()
   "Authenticate with Bluesky."
@@ -174,7 +173,7 @@ reposts and quotes."
 		 
 (defun hotsky-get-name-for-url (url)
   "Returns the name of website via cURL."
-  (let* ((cmd (concat "curl -L -s "))
+  (let* ((cmd "curl -L -s ")
          (title nil)
          (title-p nil))
     (with-temp-buffer
@@ -194,6 +193,7 @@ reposts and quotes."
 	      (string= "Access to this page has been denied" title)
 	      (string= "reuters.com" title)
 	      (string= "Access Denied" title)
+	      (string= "ERROR: The request could not be satisfied" title)
 	      (string= "Telegram" title)
 	      (string= "Bloomberg - Are you a robot?" title)
 	      (string= "Subscribe to read" title))
@@ -226,9 +226,7 @@ reposts and quotes."
 mentions."
   (interactive)
   (let ((hotsky-buffer "*hotsky buffer*")
-	(hotsky-og-max-length-entry hotsky-max-length-entry))
-    (when (not hotsky-max-length-entry)
-      (setq hotsky-max-length-entry (- (window-body-width) 11)))
+	(hotsky-max-length-entry (- (window-body-width) 11)))
     (with-current-buffer (get-buffer-create hotsky-buffer)
       (erase-buffer)
       (switch-to-buffer hotsky-buffer)
@@ -248,9 +246,7 @@ mentions."
               (insert full-line))))
 	(goto-char (point-min))  
 	(org-next-link)
-	(hotsky-buffer-mode)
-	(when (not hotsky-og-max-length-entry)
-	  (setq hotsky-max-length-entry nil))))))
+	(hotsky-buffer-mode)))))
  
 (defun hotsky-org-goto-first-link ()
   "Move point to the first link in the current buffer."
