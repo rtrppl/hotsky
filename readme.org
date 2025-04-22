@@ -4,9 +4,9 @@
 
 ** The Idea
 
-In the wake of the demise of Twitter many scholars, journalists, politicians and public persons have landed on Bluesky as their social network of choice. Even following only a few dozen of these highly productive (and online) people may lead to receiving several hundred posts on any given day - especially given the current state of the world. *hotsky.el* was intended as a way to quit doom scrolling while still taking advantage of all the great links posted there. It only extracts links - text and images are ignored.
+In the wake of the demise of Twitter many scholars, journalists, politicians, and public persons have landed on Bluesky as their social network of choice. Even following only a few dozen of these highly productive (and online) people may lead to receiving several hundred posts on any given day - especially given the current state of the world. *hotsky.el* was intended as a way to quit doom-scrolling while still taking advantage of some of the great links posted there. It only extracts links - text and images are ignored.
 
-I use [[https://curl.se/][cURL]] to fetch the posts from Bluesky and also to get the names of the linked websites. Some websites try actively to prevent cURL from fetching the =<title>= info. For these cases hotsky is using the URL as the basis for the name shown.
+I use [[https://curl.se/][cURL]] to fetch the posts from Bluesky and also to get the names of the linked websites. Some websites try actively to prevent cURL from fetching the =<title>= info. For these cases hotsky just shows the URL.
 
 #+BEGIN_HTML
 <img src="/hotsky-example.png" alt="A sample hotsky buffer with a list of links.">
@@ -22,7 +22,7 @@ I use [[https://curl.se/][cURL]] to fetch the posts from Bluesky and also to get
 
 *** Use-package
 
-You do need to have =cURL= installed on your system. You also need a Bluesky account and [[https://bsky.app/settings/app-passwords][an app-password for your account]]. 
+You do need to have =cURL= installed on your system. You also need a Bluesky account and [[https://bsky.app/settings/app-passwords][an app-password for your account]]. The default setting in hotsky is to analyze the most recent 250 posts (you can adjust this via =hotsky-max-posts=, see below). 
 
 This is my current setup:
 
@@ -33,6 +33,7 @@ This is my current setup:
   (:map global-map
 	("C-c d h" . hotsky)
   :config
+  (setq hotsky-max-posts 250) ; This is the default
   (setq hotsky-bluesky-handle "handle.bsky.social")
   (setq hotsky-bluesky-app-password "password"))
 #+end_src
