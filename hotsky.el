@@ -174,6 +174,7 @@ reposts and quotes."
 (defun hotsky-get-name-for-url (url)
   "Returns the name of website via cURL."
   (let* ((cmd "curl -L -s ")
+	 (hotsky-max-length-entry (- (window-body-width) 11))
          (title nil)
          (title-p nil))
     (with-temp-buffer
@@ -225,8 +226,7 @@ reposts and quotes."
   "Return a list of all URLs in my Bluesky feed, sorted by frequency of 
 mentions."
   (interactive)
-  (let ((hotsky-buffer "*hotsky buffer*")
-	(hotsky-max-length-entry (- (window-body-width) 11)))
+  (let ((hotsky-buffer "*hotsky buffer*"))
     (with-current-buffer (get-buffer-create hotsky-buffer)
       (erase-buffer)
       (switch-to-buffer hotsky-buffer)
