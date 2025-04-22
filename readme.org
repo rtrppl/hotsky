@@ -18,7 +18,7 @@ I use [[https://curl.se/][cURL]] to fetch the posts from Bluesky and also to get
 *0.1*
 - Initial release
 
-** Installation 
+** Installation
 
 *** Use-package
 

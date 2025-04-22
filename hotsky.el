@@ -217,6 +217,7 @@ reposts and quotes."
     (maphash (lambda (url count)
                (push (cons url count) url-list))
              url-frequency-map)
+    (setq url-list (nreverse url-list))
     ;; Sort the list by frequency (descending order)
     (sort url-list (lambda (a b) (> (cdr a) (cdr b))))))
 
