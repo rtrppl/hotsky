@@ -2,7 +2,7 @@
 
 ;; Maintainer: René Trappel <rtrappel@gmail.com>
 ;; URL: https://github.com/rtrppl/hotsky
-;; Version: 0.1.1
+;; Version: 0.1.2
 ;; Package-Requires: ((emacs "29.1"))
 
 ;; This file is not part of GNU Emacs.
@@ -24,6 +24,11 @@
 
 ;; hotsky.el provides an Orgmode buffer with a sorted list of links 
 ;; from posts in your Bluesky feed.
+
+;;; News
+;;
+;; 0.1.2
+;; - Added for g=refresh
 
 ;;; Code:
 
@@ -231,8 +236,8 @@ mentions."
       (erase-buffer)
       (switch-to-buffer hotsky-buffer)
       (org-mode)
-      (insert "* Links in your Bluesky timeline sorted by frequency (No. of ▌). \n\n")
-      (insert "(q=kill this buffer, n=next link, p=previous link, <=goto first link, >=goto last link, return=open link, space=scroll)\n\n")
+      (insert "* Links in your Bluesky timeline sorted by frequency (No. of ▌) and time posted. \n\n")
+      (insert "(q=kill this buffer, g=refresh, n=next link, p=previous link, <=goto first link, >=goto last link, return=open link, space=scroll)\n\n")
       (let* ((all-urls (hotsky-get-all-urls))
              (sorted-list (hotsky-sort-hot all-urls))
              (url-name-map (hotsky-get-url-name-map all-urls)))
@@ -265,6 +270,7 @@ mentions."
   :lighter " hotsky-buffer"
   :keymap (let ((map (make-sparse-keymap)))
             (define-key map (kbd "q") (lambda () (interactive) (kill-buffer (current-buffer))))
+	    (define-key map (kbd "g") 'hotsky)
 	    (define-key map (kbd "n") 'org-next-link)
 	    (define-key map (kbd "p") 'org-previous-link)
 	    (define-key map (kbd "<") 'hotsky-org-goto-first-link)
