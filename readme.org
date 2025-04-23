@@ -16,7 +16,7 @@ I use [[https://curl.se/][cURL]] to fetch the posts from Bluesky and also to get
 ** Changelog
 
 *0.1.2*
-- Added for "g" for refresh as an option
+- Added "g" for refresh as an option
 
 *0.1.1*
 - Small fixes

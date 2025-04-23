@@ -266,7 +266,7 @@ mentions."
   (org-previous-link))  
 
 (define-minor-mode hotsky-buffer-mode
-  "A minor mode for orgrr results buffers."
+  "A minor mode for the hotsky buffer."
   :lighter " hotsky-buffer"
   :keymap (let ((map (make-sparse-keymap)))
             (define-key map (kbd "q") (lambda () (interactive) (kill-buffer (current-buffer))))
