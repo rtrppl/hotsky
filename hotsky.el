@@ -22,7 +22,7 @@
 
 ;;; Commentary:
 
-;; hotsky.el provides an Orgmode buffer with a sorted list of links 
+;; hotsky.el provides an Orgmode buffer with a sorted list of links
 ;; from posts in your Bluesky feed.
 
 ;;; News
@@ -34,6 +34,7 @@
 
 (require 'json)
 (require 'xml)
+(require 'org)
 
 (defvar hotsky-bluesky-handle "handle.bsky.social")
 (defvar hotsky-bluesky-app-password "bluesky-password")
@@ -43,7 +44,7 @@
 (defun hotsky-bluesky-authenticate ()
   "Authenticate with Bluesky."
   (let ((bluesky-callback-json))
-  (setq bluesky-callback-json (shell-command-to-string 
+  (setq bluesky-callback-json (shell-command-to-string
 			  (concat "curl -sS -X POST \\\n"
 				  "-H \"Content-Type: application/json\" \\\n"
 				  "-d '{\"identifier\":\"" hotsky-bluesky-handle "\",\"password\":\"" hotsky-bluesky-app-password "\"}' \\\n"
@@ -51,15 +52,6 @@
   (setq hotsky-accessJwt (json-parse-string bluesky-callback-json :object-type 'alist))
   (setq hotsky-accessJwt (alist-get 'accessJwt hotsky-accessJwt))))
   
-(defun hotsky-get-timeline ()
-  "Load Bluesky timeline into hash-table."
-  (hotsky-bluesky-authenticate)
-  (let* ((url "https://bsky.social/xrpc/app.bsky.feed.getTimeline")
-         (auth (concat "Authorization: Bearer " hotsky-accessJwt))
-         (cmd (format "curl -sS -G -H \"%s\" --data-urlencode \"limit=100\" \"%s\"" auth url))
-         (raw (shell-command-to-string cmd)))
-    (json-parse-string raw :object-type 'hash-table)))
-
 (defun hotsky-get-timeline (&optional max-posts)
   "Load up to MAX-POSTS entries from the Bluesky timeline."
   (hotsky-bluesky-authenticate)
@@ -100,7 +92,7 @@
       final)))
 
 (defun hotsky--extract-urls (record)
-  "Helper to extract URLs from a post record."
+  "Helper to extract URLs from a post RECORD."
   (let ((facets (and (hash-table-p record) (gethash "facets" record)))
         (urls '()))
     (when facets
@@ -115,8 +107,7 @@
     urls))
 
 (defun hotsky-get-cid-url-map ()
-  "Return a hashtable mapping cid to a list of all URLs in each post, including 
-reposts and quotes."
+  "Return a hashtable mapping cid to a list of all URLs in each post."
   (let* ((timeline (hotsky-get-timeline hotsky-max-posts)) ;; Optionally raise count
          (result (make-hash-table :test #'equal)))
     (mapc (lambda (entry)
@@ -155,7 +146,7 @@ reposts and quotes."
     result))
 
 (defun hotsky-get-all-urls ()
-  "Returns a list with all URLs."
+  "Return a list with all URLs."
   (let* ((cid-url-map (hotsky-get-cid-url-map))
 	 (all-cids (hash-table-keys cid-url-map))
 	 (all-urls '()))
@@ -168,7 +159,7 @@ reposts and quotes."
     all-urls))
 
 (defun hotsky-get-url-name-map (all-urls)
-  "Return a hashtable mapping a list of URLs to the name of the websites."
+  "Return a hashtable mapping the names of websites to ALL-URLS."
   (let* ((url-name-map (make-hash-table :test #'equal)))
     (dolist (entry all-urls)
       (message "Fetching name for %s." entry)
@@ -177,7 +168,7 @@ reposts and quotes."
     url-name-map))
 		 
 (defun hotsky-get-name-for-url (url)
-  "Returns the name of website via cURL."
+  "Return the name of website via cURL from URL."
   (let* ((cmd "curl -L -s ")
 	 (hotsky-max-length-entry (- (window-body-width) 11))
          (title nil)
@@ -187,7 +178,7 @@ reposts and quotes."
       (goto-char (point-min))
       ;; Try to extract the title contents
       (while (re-search-forward "<title[^>]*>\\([^>]*\\)</title>" nil t)
-        (when (and (not title-p) 
+        (when (and (not title-p)
 		   (match-string 0))
           (setq title (match-string 1))
           (setq title-p t))))
@@ -212,7 +203,7 @@ reposts and quotes."
     (or title url)))
 
 (defun hotsky-sort-hot (all-urls)
-  "Sorts the URLs for frequency."
+  "Sort the URLs in ALL-URLS for frequency."
   (let* ((url-frequency-map (make-hash-table :test #'equal))
          (url-list '()))
     ;; Count frequencies of each URL
@@ -228,8 +219,7 @@ reposts and quotes."
     (sort url-list (lambda (a b) (> (cdr a) (cdr b))))))
 
 (defun hotsky ()
-  "Return a list of all URLs in my Bluesky feed, sorted by frequency of 
-mentions."
+  "Return a sorted list of all URLs in my Bluesky feed."
   (interactive)
   (let ((hotsky-buffer "*hotsky buffer*"))
     (with-current-buffer (get-buffer-create hotsky-buffer)
@@ -249,21 +239,21 @@ mentions."
 		   (org-link (concat "[[" (car item) "][" name "]]"))
 		   (full-line (concat frequency " " org-link "\n")))
               (insert full-line))))
-	(goto-char (point-min))  
+	(goto-char (point-min))
 	(org-next-link)
 	(hotsky-buffer-mode)))))
  
 (defun hotsky-org-goto-first-link ()
   "Move point to the first link in the current buffer."
   (interactive)
-  (goto-char (point-min))  
+  (goto-char (point-min))
   (org-next-link))
 
 (defun hotsky-org-goto-last-link ()
   "Move point to the last link in the current buffer."
   (interactive)
-  (goto-char (point-max)) 
-  (org-previous-link))  
+  (goto-char (point-max))
+  (org-previous-link))
 
 (define-minor-mode hotsky-buffer-mode
   "A minor mode for the hotsky buffer."
