@@ -48,7 +48,7 @@ This is my current setup:
 
 *** hotsky
 
-This is the only function *hotsky.el* provides. 
+This is the only interactive function *hotsky.el* provides. 
 
 ** FAQ
 

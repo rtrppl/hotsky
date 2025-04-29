@@ -185,6 +185,7 @@
     ;; Only clean up the title if it's not nil
     (when title
       (setq title (replace-regexp-in-string "[ \n\t]" " " title))
+      (setq title (string-trim-left title))
       (setq title (xml-substitute-special title)))
     (when (or (string= "Just a moment..." title)
 	      (string= "Access to this page has been denied" title)
@@ -193,7 +194,8 @@
 	      (string= "ERROR: The request could not be satisfied" title)
 	      (string= "Telegram" title)
 	      (string= "Bluesky" title)
-	      (string= "       503 - Service Unavailable Error" title)
+	      (string= "503 - Service Unavailable Error" title)
+	      (string= "403 Forbidden" title)
 	      (string= "Attention Required! | Cloudflare" title)
 	      (string= "Bloomberg - Are you a robot?" title)
 	      (string= "Subscribe to read" title))
