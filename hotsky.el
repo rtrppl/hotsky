@@ -160,13 +160,97 @@
 
 (defun hotsky-get-url-name-map (all-urls)
   "Return a hashtable mapping the names of websites to ALL-URLS."
-  (let* ((url-name-map (make-hash-table :test #'equal)))
+  (let* ((url-name-map (make-hash-table :test #'equal))
+	 (bufferno 0))
     (dolist (entry all-urls)
+      (setq bufferno (+ bufferno 1))
       (message "Fetching name for %s." entry)
-      (puthash entry (hotsky-get-name-for-url entry) url-name-map))
+      (puthash entry (hotsky-get-name-url entry bufferno) url-name-map))
     (message "All names are fetched.")
     url-name-map))
+
+(defun hotsky-get-url-name-map (all-urls)
+  "Return a HASHTABLE mapping each URL to the `process` spawned to fetch its name."
+  (let ((bufferno 0)
+        (url-name-map (make-hash-table :test #'equal)))
+    (dolist (url all-urls)
+      (setq bufferno (1+ bufferno))
+      (message "spawning process for %s" url)
+      (puthash url (hotsky-get-name-url url bufferno) url-name-map))
+    (message "All processes started — names will populate asynchronously.")
+    url-name-map))
 		 
+(defun hotsky-get-name-url (url bufferno)
+ "Initiates the process to get the name."
+	(make-process 
+	 :name "hotsky-get-url-name"
+	 :buffer (concat "hotsky-update-buffer" (number-to-string bufferno))
+	 :command (list "curl" "-L" "-s"
+			url)
+	 :connection-type 'pipe
+	 :sentinel #'hotsky-process-url-name))
+
+(defun hotsky-get-name-url (url bufferno)
+  "Initiate URL fetch and send result to `hotsky-process-url-name’."
+  (let* ((buf (generate-new-buffer-name
+               (format "*hotsky-update-%d*" bufferno)))
+         (proc
+          (make-process
+           :name "hotsky-get-url-name"
+           :buffer buf
+           :command (list "curl" "-Ls" url)
+           :connection-type 'pipe
+           ;; suspend default sentinel:
+           :sentinel nil)))
+    (set-process-sentinel
+     proc
+     ;; this lambda closes over 'url' and delegates to your function
+     (lambda (process event)
+       (hotsky-process-url-name process event url)))
+    proc))
+
+
+(defun hotsky-process-url-name (process event url)
+  "Processes the data fetched by curl to get the URL name."
+  (message "Fetching name for %s." url)
+   (when (string-equal event "finished\n")
+     (with-current-buffer (process-buffer process)
+      (let* ((hotsky-max-length-entry (- (window-body-width) 11))
+             (title nil)
+             (title-p nil)) 
+	(goto-char (point-min))
+	;; Try to extract the title contents
+	(while (re-search-forward "<title[^>]*>\\([^>]*\\)</title>" nil t)
+          (when (and (not title-p)
+		   (match-string 0))
+            (setq title (match-string 1))
+            (setq title-p t)))
+    ;; Only clean up the title if it's not nil
+    (when title
+      (setq title (replace-regexp-in-string "[ \n\t]" " " title))
+      (setq title (string-trim-left title))
+      (setq title (xml-substitute-special title)))
+    (when (or (string= "Just a moment..." title)
+	      (string= "Access to this page has been denied" title)
+	      (string= "reuters.com" title)
+	      (string= "Access Denied" title)
+	      (string= "ERROR: The request could not be satisfied" title)
+	      (string= "Telegram" title)
+	      (string= "Bluesky" title)
+	      (string= "503 - Service Unavailable Error" title)
+	      (string= "403 Forbidden" title)
+	      (string= "Attention Required! | Cloudflare" title)
+	      (string= "Bloomberg - Are you a robot?" title)
+	      (string= "Subscribe to read" title))
+      (setq title nil))
+    (when (> (length url) hotsky-max-length-entry)
+      (setq url (concat (substring url 0 hotsky-max-length-entry) "...")))
+    (when (> (length title) hotsky-max-length-entry)
+      (setq title (concat (substring title 0 hotsky-max-length-entry) "...")))
+    ;; Fallback: if title not found, return the URL
+    (print title)
+    (or title url)))))
+
 (defun hotsky-get-name-for-url (url)
   "Return the name of website via cURL from URL."
   (let* ((cmd "curl -L -s ")
